@@ -1,27 +1,26 @@
-import { createApp } from 'vue'
-import App from './App.vue'
-import { setupI18n } from './locales'
-import { setupAssets, setupScrollbarStyle } from './plugins'
-import { setupStore } from './store'
-import { setupRouter } from './router'
-import 'virtual:svg-icons-register'; // 引入虚拟的 svg 图标模块
-import IconSvg from '@/components/common/IconSvg/index.vue';
+// 引入ElementPlus所有图标
+import * as ElementPlusIconsVue from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
+import { createApp } from 'vue';
+import ElementPlusX from 'vue-element-plus-x';
+import App from './App.vue';
+import router from './routers';
+import store from './stores';
+import './styles/index.scss';
+import 'virtual:uno.css';
+import 'element-plus/dist/index.css';
+// SVG插件配置
+import 'virtual:svg-icons-register';
 
-async function bootstrap() {
-  const app = createApp(App)
-  // 全局注册 SvgIcon 组件
-  app.component('IconSvg', IconSvg);
-  setupAssets()
+const app = createApp(App);
 
-  setupScrollbarStyle()
-
-  setupStore(app)
-
-  setupI18n(app)
-
-  await setupRouter(app)
-
-  app.mount('#app')
+app.use(router);
+app.use(ElMessage);
+app.use(ElementPlusX);
+// 注册ElementPlus所有图标
+for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+  app.component(key, component);
 }
+app.use(store);
 
-bootstrap()
+app.mount('#app');
