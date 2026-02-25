@@ -27,6 +27,9 @@ type MessageItem = BubbleProps & {
   thinlCollapse?: boolean;
   reasoning_content?: string;
 };
+const copyIconMap = ref<Record<number, string>>({}); // 记录每条消息的复制按钮图标
+const editingMessageKeys = ref<number[]>([]); // 跟踪多个编辑中的消息
+const editedContents = ref<Record<number, string>>({}); // 存储每条消息的临时编辑内容
 
 const copyIcon = ref("CopyDocument");
 const route = useRoute();
@@ -54,12 +57,19 @@ const isWebSearchEnabled = ref(false);
 // 知识库列表配置
 const knowledgeList = ref<any[]>([]);
 
+const workflowList = ref<any[]>([
+  {
+    id: 1,
+    name: "工作流1",
+  },
+]);
+
 // 知识库弹窗状态
 const knowledgePopoverRef = ref();
 const isKnowledgePopoverVisible = ref(false);
 const selectedKnowledgeId = ref<string>("");
 const selectedKnowledgeName = ref<string>("知识库");
-
+const isWorkflowVisible = ref(false);
 // 加载知识库列表
 async function loadKnowledgeList() {
   try {
@@ -97,6 +107,9 @@ function clearKnowledgeSelection() {
 
 // 从 localStorage 恢复推理状态
 onMounted(async () => {
+  bubbleItems.value.forEach((item) => {
+    copyIconMap.value[item.key] = "CopyDocument";
+  });
   const enableThinking = localStorage.getItem("enableThinking");
   if (enableThinking === "true") {
     isReasoningEnabled.value = true;
@@ -356,14 +369,16 @@ async function cancelSSE() {
     bubbleItems.value[bubbleItems.value.length - 1].typing = false;
   }
 }
-function copyToClipboard(text: string) {
+function copyToClipboard(text: string, key: number) {
   navigator.clipboard
     .writeText(text)
     .then(() => {
-      // ElMessage.success("内容已复制到剪贴板");
-      copyIcon.value = "Check"; // Change icon to checkmark
+      // 更新当前消息的图标为打钩
+      copyIconMap.value[key] = "Check";
+
+      // 延迟恢复原始图标
       setTimeout(() => {
-        copyIcon.value = "CopyDocument"; // Reset icon after delay
+        copyIconMap.value[key] = "CopyDocument";
       }, 2000);
     })
     .catch((err) => {
@@ -401,7 +416,37 @@ function handleDeleteCard(_item: FilesCardProps, index: number) {
   filesStore.deleteFileByIndex(index);
 }
 
-// 创建新对话
+// 编辑消息
+function startEditing(item: MessageItem) {
+  if (!editingMessageKeys.value.includes(item.key)) {
+    editingMessageKeys.value.push(item.key); // 将消息 key 加入编辑列表
+    editedContents.value[item.key] = item.content; // 初始化编辑内容
+  }
+  // ⭐ 关键：关闭 Bubble 样式
+  item.noStyle = true;
+  item.class = "editing-bubble"; // ⭐ 新增
+}
+
+// Cancel editing and revert to original content
+function cancelEditingByKey(key: number) {
+  const item = bubbleItems.value.find((i) => i.key === key);
+  if (item) {
+    item.noStyle = false; // 恢复气泡
+    item.class = "";
+  }
+  editingMessageKeys.value = editingMessageKeys.value.filter((k) => k !== key);
+  delete editedContents.value[key];
+}
+
+// Send edited message as a new chat message
+function sendMessageByKey(key: number) {
+  const newContent = editedContents.value[key];
+  if (newContent) {
+    // addMessage(newContent, true);
+    startSSE(newContent);
+    cancelEditingByKey(key);
+  }
+}
 function handleCreateNewChat() {
   sessionStore.createSessionBtn();
 }
@@ -461,18 +506,44 @@ watch(
             default-theme-mode="dark"
           />
           <!-- user 内容 纯文本 -->
-          <div v-if="item.content && item.role === 'user'" class="user-bubble">
-            <div class="user-content">
-              {{ item.content }}
+          <div v-if="item.content && item.role === 'user'" class="userContent">
+            <div class="user-bubble" :class="{ editing: editingMessageKeys.includes(item.key) }">
+              <template v-if="!editingMessageKeys.includes(item.key)">
+                <div class="user-content">
+                  {{ item.content }}
+                </div>
+              </template>
+
+              <template v-else>
+                <div class="edit-card">
+                  <el-input
+                    v-model="editedContents[item.key]"
+                    type="textarea"
+                    autosize
+                    class="edit-input"
+                  />
+                  <div class="edit-actions">
+                    <el-button size="small" @click="cancelEditingByKey(item.key)"> 取消 </el-button>
+                    <el-button type="primary" size="small" @click="sendMessageByKey(item.key)">
+                      发送
+                    </el-button>
+                  </div>
+                </div>
+              </template>
             </div>
-            <!-- Copy Button Container -->
-            <div class="copy-button-container">
-              <el-button
-                class="copy-btn"
-                :icon="copyIcon"
-                size="small"
-                @click="copyToClipboard(item.content)"
-              />
+
+            <div v-if="!editingMessageKeys.includes(item.key)" class="copy-button-container">
+              <el-tooltip content="复制" placement="bottom">
+                <el-button
+                  class="copy-btn"
+                  :icon="copyIconMap[item.key] || 'CopyDocument'"
+                  size="small"
+                  @click="copyToClipboard(item.content, item.key)"
+                />
+              </el-tooltip>
+              <el-tooltip content="编辑" placement="bottom">
+                <el-button class="copy-btn" icon="Edit" size="small" @click="startEditing(item)" />
+              </el-tooltip>
             </div>
           </div>
         </template>
@@ -609,6 +680,36 @@ watch(
                   </el-icon>
                   <span class="feature-text">联网</span>
                 </div>
+
+                <el-popover
+                  ref="knowledgePopoverRef"
+                  placement="top-start"
+                  :width="280"
+                  trigger="click"
+                  popper-class="knowledge-popover"
+                  @show="isWorkflowVisible = true"
+                  @hide="isWorkflowVisible = false"
+                >
+                  <template #default>
+                    <div class="knowledge-list-container">
+                      <div class="knowledge-list">
+                        <div v-for="item in workflowList" :key="item.id" class="knowledge-item">
+                          <div class="item-name">
+                            {{ item.name }}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+                  <template #reference>
+                    <div class="feature-btn">
+                      <el-icon class="feature-icon">
+                        <SetUp />
+                      </el-icon>
+                      <span class="feature-text">工作流</span>
+                    </div>
+                  </template>
+                </el-popover>
               </div>
             </div>
           </template>
@@ -619,39 +720,83 @@ watch(
 </template>
 
 <style scoped lang="scss">
-.user-bubble {
-  position: relative;
-  display: inline-block;
+/* 编辑时去掉气泡样式 */
+.user-bubble.editing {
+  background: transparent !important;
+  padding: 0;
+}
+:deep(.editing-bubble.el-bubble) {
+  display: flex !important;
+  width: 100% !important;
+  justify-content: flex-start !important;
+}
 
-  .user-content {
-    max-width: 100%;
-    word-wrap: break-word;
-  }
+:deep(.editing-bubble .el-bubble__content) {
+  flex: 1 !important;
+  max-width: none !important;
+  width: 100% !important;
+}
 
-  .copy-button-container {
-    position: absolute;
-    bottom: -40px;
-    right: -10px;
-    opacity: 0;
-    transform: translateY(10px);
-    transition: all 0.3s ease;
-    pointer-events: none;
+/* 编辑卡片 */
+.edit-card {
+  width: 500px;
+  box-sizing: border-box;
+  border: 1px solid #dcdfe6;
+  border-radius: 16px;
+  padding: 12px;
+  background: #ffffff;
+  transition: all 0.2s ease;
+}
 
-    .copy-btn {
-      width: 24px;
-      height: 24px;
-      padding: 0;
-      font-size: 14px;
-      background-color: #ffffff;
-      cursor: pointer;
-      pointer-events: auto;
-      float: right;
+/* textarea 样式 */
+.edit-input :deep(.el-textarea__inner) {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  resize: none;
+  padding: 0;
+  font-size: 14px;
+}
+
+/* 按钮区域 */
+.edit-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.copy-button-container {
+  position: absolute;
+  bottom: -28px;
+  right: -10px;
+  // opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s ease;
+  pointer-events: none;
+  display: flex;
+  justify-content: flex-end;
+
+  .copy-btn {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    font-size: 16px;
+    // background-color: #ffffff;
+    cursor: pointer;
+    pointer-events: auto;
+    // float: right;
+    border: none !important;
+    color: #91949a;
+    :deep(svg) {
+      stroke-width: 3 !important;
     }
-  }
 
-  &:hover .copy-button-container {
-    opacity: 1;
-    transform: translateY(0);
+    &:hover {
+      border-radius: 50%;
+      transition: background-color 0.2s;
+      background-color: #f1efef;
+    }
   }
 }
 .chat-with-id-container {
