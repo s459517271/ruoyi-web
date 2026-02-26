@@ -82,6 +82,39 @@ const hasMoreWorkflows = ref(true);
 
 const isResume = ref(false);
 
+// 跟踪当前节点 ID
+let currentNodeId: string | null = null;
+// 处理 NODE_CHUNK 事件的函数
+function handleNodeChunk(data: any, isLastChunk = false) {
+  const nodeId = data.nodeId; // 从数据中提取节点 ID
+  const content = data.content; // 从数据中提取内容
+
+  console.log("nodeId-nodeId", nodeId, currentNodeId);
+
+  if (nodeId && !isLastChunk) {
+    // 判断节点 ID 是否发生变化
+    if (nodeId !== currentNodeId) {
+      // 创建一个新的系统消息气泡
+
+      const lastMessage = bubbleItems.value[bubbleItems.value.length - 1];
+
+      lastMessage.thinkingStatus = "end";
+      lastMessage.loading = false;
+      lastMessage.content += content;
+      currentNodeId = nodeId; // 更新当前节点 ID
+      console.log("currentNodeId", currentNodeId);
+      addMessage("", false); // 添加一个空的系统消息气泡
+    }
+  } else {
+    //  如果是最后一块数据，清理空白气泡
+    const lastMessage = bubbleItems.value[bubbleItems.value.length - 1];
+    if (lastMessage && lastMessage.role === "system" && !lastMessage.content.trim()) {
+      // 删除最后一个空白气泡
+      bubbleItems.value.pop();
+    }
+  }
+}
+
 function chooseWorkflowItem(item: any) {
   isWorkflowVisible.value = true;
   selectedWorkflowName.value = item.title;
@@ -208,7 +241,7 @@ onMounted(async () => {
     isWorkflowVisible.value = true;
     localStorage.removeItem("isWorkflowVisible");
   }
-  
+
   const workFlowRunnerStr = localStorage.getItem("workFlowRunner");
   if (workFlowRunnerStr) {
     const workFlowRunnerObj = JSON.parse(workFlowRunnerStr);
@@ -450,6 +483,8 @@ async function startSSE(chatContent: string) {
       if (typeof rawData === "string" && rawData.includes("DONE") && rawData.includes("data:")) {
         isResume.value = false;
         reSumeRunner.value = {};
+        // 判断是否是最后一块数据
+        handleNodeChunk({}, true);
       }
       if (
         typeof rawData === "string" &&
@@ -487,9 +522,18 @@ async function startSSE(chatContent: string) {
           rawData.includes("NODE_CHUNK") &&
           rawData.includes("data:")
         ) {
-          // 提取 event 类型
+          const eventMatch = rawData.match(/event:([\s\S]*?)\ndata:/);
+          const event = eventMatch ? eventMatch[1] : null;
+
+          const nodeUuid = event.replace("[NODE_CHUNK_", "").replace("]", "");
+
+          // 提取 data 字段的内容
           const dataMatch = rawData.match(/data:([\s\S]*?)(?=\nevent:|$)/);
           let data = dataMatch?.[1]?.trim();
+          const showData = {
+            nodeId: nodeUuid,
+            content: data,
+          };
           if (data) {
             data = data
               .split("\ndata:")
@@ -498,11 +542,34 @@ async function startSSE(chatContent: string) {
               .join("\n");
           }
 
-          // 只有当 data 不为空且不是格式错误的 'data:' 字符串时才处理
+          // 判断是否是最后一块数据
+          const isLastChunk = rawData.includes(":disconnected");
 
-          if (data && data.length > 0 && data !== "data:") {
-            handleDataChunk({ data });
-          }
+          // 调用 handleNodeChunk
+          handleNodeChunk(showData, isLastChunk);
+
+          // 确保数据有效后再处理
+          // if (data && data.length > 0 && data !== "data:") {
+          //   console.log("NODE_CHUNK", showData);
+          //   // const parsedData = JSON.parse(data); // 假设数据是 JSON 格式
+          //   handleNodeChunk(showData); // 调用处理函数
+          // }
+          // // 提取 event 类型
+          // const dataMatch = rawData.match(/data:([\s\S]*?)(?=\nevent:|$)/);
+          // let data = dataMatch?.[1]?.trim();
+          // if (data) {
+          //   data = data
+          //     .split("\ndata:")
+          //     .map((line) => line.trim())
+          //     .filter((line) => line !== "")
+          //     .join("\n");
+          // }
+
+          // // 只有当 data 不为空且不是格式错误的 'data:' 字符串时才处理
+
+          // if (data && data.length > 0 && data !== "data:") {
+          //   handleDataChunk({ data });
+          // }
         }
       } else {
         if (
