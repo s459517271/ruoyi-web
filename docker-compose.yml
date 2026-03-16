@@ -14,7 +14,7 @@ services:
       # 后端 API 地址 - 运行时通过 nginx 代理
       # 在完整 docker-compose 中应设置为: http://backend:6039
       # 独立运行时可设置为实际后端地址
-      UPSTREAM_URL: http://127.0.0.1:6039
+      UPSTREAM_URL: http://host.docker.internal:26039
     networks:
       - ruoyi-net
 

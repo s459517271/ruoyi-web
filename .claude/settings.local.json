@@ -5,7 +5,9 @@
       "Bash(cd:*)",
       "Bash(docker pull:*)",
       "Bash(docker tag:*)",
-      "Bash(docker push:*)"
+      "Bash(docker push:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker stop:*)"
     ]
   }
 }
