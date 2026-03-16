@@ -6,15 +6,15 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.frontend
-      args:
-        # 后端 API 地址 - 构建时传入
-        VITE_API_URL: http://127.0.0.1:6039
     container_name: ruoyi-ai-web
     restart: always
     ports:
       - "5137:5137"
-    volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    environment:
+      # 后端 API 地址 - 运行时通过 nginx 代理
+      # 在完整 docker-compose 中应设置为: http://backend:6039
+      # 独立运行时可设置为实际后端地址
+      UPSTREAM_URL: http://127.0.0.1:6039
     networks:
       - ruoyi-net
 

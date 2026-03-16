@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(cd:*)",
+      "Bash(docker pull:*)",
+      "Bash(docker tag:*)",
+      "Bash(docker push:*)"
     ]
   }
 }
