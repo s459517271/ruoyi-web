@@ -62,7 +62,7 @@ function handleClick(item: GetSessionListVO) {
       <!-- 触发元素插槽 -->
       <template #trigger>
         <div
-          class="model-select-box select-none flex items-center gap-4px p-10px rounded-10px cursor-pointer font-size-12px border-[rgba()]"
+          class="model-select-box select-none flex items-center gap-4px p-10px rounded-10px cursor-pointer font-size-12px"
         >
           <div class="model-select-box-icon">
             <SvgIcon name="models" size="12" />
@@ -109,21 +109,36 @@ function handleClick(item: GetSessionListVO) {
 
 <style scoped lang="scss">
 .model-select-box {
-  color: var(--el-color-primary, #409eff);
+  background-color: #fff;
+  border: 1px solid rgb(0 0 0 / 10%);
+  color: rgb(0 0 0 / 85%);
+  font-weight: 500;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: rgb(0 0 0 / 4%);
+    border-color: rgb(0 0 0 / 15%);
+  }
+
+  // 选中状态（模型始终选中，显示蓝色）
   background: var(--el-color-primary-light-9, rgb(235.9 245.3 255));
-  border: 1px solid var(--el-color-primary, #409eff);
-  border-radius: 10px;
+  border-color: var(--el-color-primary, #409eff);
+  color: var(--el-color-primary, #409eff);
+  font-weight: 600;
 }
+
 .popover-content-box-item.is-select {
   font-weight: 700;
   color: var(--el-color-primary, #409eff);
 }
+
 .popover-content-box {
   display: flex;
   flex-direction: column;
   gap: 4px;
   height: 200px;
   overflow: hidden auto;
+
   .popover-content-box-items {
     :deep() {
       .popover-trigger-item-text {
@@ -131,6 +146,7 @@ function handleClick(item: GetSessionListVO) {
       }
     }
   }
+
   .popover-content-box-item-text {
     color: white;
     background-color: black;
@@ -140,9 +156,11 @@ function handleClick(item: GetSessionListVO) {
   &::-webkit-scrollbar {
     width: 4px;
   }
+
   &::-webkit-scrollbar-track {
     background: #f5f5f5;
   }
+
   &::-webkit-scrollbar-thumb {
     background: #cccccc;
     border-radius: 4px;

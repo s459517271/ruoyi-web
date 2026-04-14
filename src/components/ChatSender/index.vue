@@ -245,7 +245,7 @@ defineExpose({
               </div>
             </template>
             <template #reference>
-              <div class="action-btn" :class="{ active: selectedKnowledgeId }">
+              <div class="action-btn knowledge-btn" :class="{ active: selectedKnowledgeId }">
                 <el-icon class="action-icon">
                   <DocumentCopy />
                 </el-icon>

@@ -44,6 +44,11 @@ function handleSearch(keyword: string) {
   }, 300);
 }
 
+// 清除搜索
+function handleClearSearch() {
+  sessionStore.clearSearch();
+}
+
 onMounted(async () => {
   // 获取会话列表
   console.log('[Aside.onMounted] 开始获取会话列表');
@@ -193,6 +198,7 @@ function handleMenuCommand(command: string, item: ConversationItem<ChatSessionVo
             placeholder="搜索对话"
             clearable
             class="search-input"
+            @clear="handleClearSearch"
           >
             <template #prefix>
               <el-icon>

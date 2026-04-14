@@ -9,6 +9,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AccountPassword: typeof import('./../src/components/LoginDialog/components/FormLogin/AccountPassword.vue')['default']
+    ChatSender: typeof import('./../src/components/ChatSender/index.vue')['default']
     DeepThinking: typeof import('./../src/components/DeepThinking/index.vue')['default']
     EchartsRenderer: typeof import('./../src/components/EchartsRenderer/index.vue')['default']
     ElAvatar: typeof import('element-plus/es')['ElAvatar']

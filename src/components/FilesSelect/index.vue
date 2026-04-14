@@ -4,7 +4,6 @@ import type { FilesCardProps } from 'vue-element-plus-x/types/FilesCard';
 import { useFileDialog } from '@vueuse/core';
 import { ElMessage } from 'element-plus';
 import Popover from '@/components/Popover/index.vue';
-import SvgIcon from '@/components/SvgIcon/index.vue';
 import { useFilesStore } from '@/stores/modules/files';
 
 type FilesList = FilesCardProps & {
@@ -73,10 +72,8 @@ function handleUploadFiles() {
       trigger="clickTarget"
     >
       <template #trigger>
-        <div
-          class="flex items-center gap-4px p-10px rounded-10px cursor-pointer font-size-14px border-1px border-[rgba(0,0,0,0.08)] border-solid hover:bg-[rgba(0,0,0,.04)]"
-        >
-          <el-icon>
+        <div class="files-select-btn">
+          <el-icon class="files-icon">
             <Paperclip />
           </el-icon>
         </div>
@@ -103,20 +100,20 @@ function handleUploadFiles() {
           trigger="hover"
           :hover-delay="100"
         >
-          <template #trigger>
-            <div
-              class="popover-content-item flex items-center gap-4px p-10px rounded-10px cursor-pointer font-size-14px hover:bg-[rgba(0,0,0,.04)]"
-            >
-              <SvgIcon name="code" size="16" />
-              <div class="font-size-14px">
-                上传代码
-              </div>
+          <!--          <template #trigger> -->
+          <!--            <div -->
+          <!--              class="popover-content-item flex items-center gap-4px p-10px rounded-10px cursor-pointer font-size-14px hover:bg-[rgba(0,0,0,.04)]" -->
+          <!--            > -->
+          <!--              <SvgIcon name="code" size="16" /> -->
+          <!--              <div class="font-size-14px"> -->
+          <!--                上传代码 -->
+          <!--              </div> -->
 
-              <el-icon class="ml-auto">
-                <ArrowRight />
-              </el-icon>
-            </div>
-          </template>
+          <!--              <el-icon class="ml-auto"> -->
+          <!--                <ArrowRight /> -->
+          <!--              </el-icon> -->
+          <!--            </div> -->
+          <!--          </template> -->
 
           <div class="popover-content-box">
             <div
@@ -147,4 +144,30 @@ function handleUploadFiles() {
   </div>
 </template>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+.files-select-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  user-select: none;
+  background-color: #fff;
+  border: 1px solid rgb(0 0 0 / 10%);
+  border-radius: 50%;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: rgb(0 0 0 / 4%);
+    border-color: rgb(0 0 0 / 15%);
+  }
+
+  .files-icon {
+    width: 14px;
+    height: 14px;
+    font-size: 14px;
+    color: rgb(0 0 0 / 65%);
+  }
+}
+</style>
